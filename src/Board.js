@@ -57,15 +57,59 @@ export default class Board extends React.Component {
   }
 
   componentDidMount(){
-    Dragula(Array.from(document.getElementsByClassName('Swimlane-dragColumn')))
-    .on('drop', (el, target, source, sibling) => {
-      console.log(el, target, source, sibling)
-      if(target !== source){
-        // Move to the next column, change color, and status
-        el.className = el.nextElementSibling ? el.nextElementSibling.className : el.previousElementSibling.className;
-        el.dataset.status = el.nextElementSibling ? el.nextElementSibling.dataset.status : el.previousElementSibling.dataset.status;
+    this.drake = Dragula(Array.from(document.getElementsByClassName('Swimlane-dragColumn')))
+    this.drake.on('drop', (el, target, source, sibling) => this.updateClient(el, target, source, sibling))
+  }
+
+  updateClient(el, target, source, sibling) {
+    // Move to the next column, change color, and status
+    // el.className = el.nextElementSibling ? el.nextElementSibling.className : el.previousElementSibling.className;
+    // el.dataset.status = el.nextElementSibling ? el.nextElementSibling.dataset.status : el.previousElementSibling.dataset.status;
+
+    // Reverting DOM changes from Dragula
+    this.drake.cancel(true);
+
+    // get target swimlane
+    let targetSwimLane = 'backlog';
+    if(target === this.swimlanes.inProgress.current){
+      targetSwimLane = 'in-progress'
+    }else if(target === this.swimlanes.complete.current){
+      targetSwimLane = 'complete'
+    }
+
+    // create new clientlists
+    const clientsList = [
+      ...this.state.clients.backlog,
+      ...this.state.clients.inProgress,
+      ...this.state.clients.complete,
+    ]
+
+    // get client that moved
+    const clientMoved = clientsList.find(client => client.id === el.dataset.id)
+    const clientMovedClone = {
+      ...clientMoved,
+      status: targetSwimLane
+    }
+
+    // remove clientMoved from the clientlist
+    const updatedClients = clientsList.filter(client => client.id !== clientMovedClone.id);
+
+    // Place ClientThatMoved just before the sibling client, keeping the order
+    const index = updatedClients.findIndex(client => sibling && client.id === sibling.dataset.id);
+    updatedClients.splice(index === -1 ? updatedClients.length : index , 0, clientMovedClone);
+
+    // Update React state to reflect changes
+    this.setState({
+      clients: {
+        backlog: updatedClients.filter(client => !client.status || client.status === 'backlog'),
+        inProgress: updatedClients.filter(client => client.status && client.status === 'in-progress'),
+        complete: updatedClients.filter(client => client.status && client.status === 'complete'),
       }
-    })
+    });
+}
+
+  componentWillUnmount(){
+    this.drake.remove()
   }
 
   render() {
