@@ -56,6 +56,18 @@ export default class Board extends React.Component {
     );
   }
 
+  componentDidMount(){
+    Dragula(Array.from(document.getElementsByClassName('Swimlane-dragColumn')))
+    .on('drop', (el, target, source, sibling) => {
+      console.log(el, target, source, sibling)
+      if(target !== source){
+        // Move to the next column, change color, and status
+        el.className = el.nextElementSibling ? el.nextElementSibling.className : el.previousElementSibling.className;
+        el.dataset.status = el.nextElementSibling ? el.nextElementSibling.dataset.status : el.previousElementSibling.dataset.status;
+      }
+    })
+  }
+
   render() {
     return (
       <div className="Board">
@@ -75,4 +87,7 @@ export default class Board extends React.Component {
       </div>
     );
   }
+
+  
+  
 }
